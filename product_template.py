@@ -18,7 +18,7 @@ POT_FEE = 3.50
 class Product:
     def __init__(self, product_code=None, product_name=None, category=None,
                  unit_price=None, stock_qty=None):
-        self.__product_code = product_code  # private data attributes because of underscore (__)
+        self.__product_code = product_code
         self.__product_name = product_name
         self.__category = category
         self.__unit_price = unit_price
