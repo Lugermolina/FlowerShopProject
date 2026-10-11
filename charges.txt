@@ -1,0 +1,5 @@
+100	Subtotal	100.0	Percent
+200	GST	5.0	Percent
+201	QST	9.975	Percent
+300	Delivery fee	11.0	Fixed
+101	Total	100.0	Percent

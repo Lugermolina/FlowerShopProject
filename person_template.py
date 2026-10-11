@@ -13,8 +13,9 @@ Outputs: printed person information through printPersonInfo()
 """
 import hashlib
 
-# the two access levels of the staff accounts
+# updated: three access levels of the staff accounts, the manager is new
 ACCESS_ADMIN = 'Admin'
+ACCESS_MANAGER = 'Manager'
 ACCESS_CLERK = 'Clerk'
 
 # two customers' possible states
@@ -209,6 +210,11 @@ class Staff(Person):
     # new method to open the admin menus only to an admin account
     def isAdmin(self):
         return self.getAccessLevel() == ACCESS_ADMIN
+
+    # new method to open the catalog maintenance and the management reports to a
+    # manager and to an admin
+    def canManage(self):
+        return self.getAccessLevel() == ACCESS_MANAGER or self.isAdmin()
 
     def getRole(self):
         return 'Staff'

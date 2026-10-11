@@ -188,6 +188,18 @@ def find_product(product_code, file_name=PRODUCT_FILE):
     return None
 
 
+# new function to generate the code of a new catalog item: the letter of its type
+# followed by the next number of that letter, for example B003 after B002
+def next_product_code(product_list, code_letter):
+    last_number = 0
+    for myProduct in product_list:
+        product_code = myProduct.getProductCode()
+        if product_code[0] == code_letter and product_code[1:].isdigit():
+            if int(product_code[1:]) > last_number:
+                last_number = int(product_code[1:])
+    return code_letter + format(last_number + 1, '03d')
+
+
 def staff_record(myStaff):
     return (str(myStaff.getPersonId()) + '\t' + myStaff.getLastName() + '\t'
             + myStaff.getFirstName() + '\t' + myStaff.getAddress() + '\t'
@@ -416,7 +428,7 @@ def load_order_bill(order_id, file_name=BILL_DETAIL_FILE):
 def create_default_data():
     if len(load_staff()) == 0:
         myStaff = Staff(2001, 'Administrator', 'Shop', 'Flower Shop, Montreal, QC',
-                        '514-555-0100', 'admin@flowershop.com', 'Manager',
+                        '514-555-0100', 'admin@flowershop.com', 'Owner',
                         DEFAULT_ADMIN_USERNAME, None, ACCESS_ADMIN)
         myStaff.setPassword(DEFAULT_ADMIN_PASSWORD)
         save_staff(myStaff)
