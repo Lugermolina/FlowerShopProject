@@ -25,6 +25,8 @@ from product_form import ProductForm
 from staff_form import StaffForm
 from charge_form import ChargeForm
 from order_form import OrderForm
+from billing_form import BillingForm
+from report_form import ReportForm
 
 WINDOW_TITLE = 'Flower Shop Management System'
 
@@ -113,13 +115,13 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(OrderForm(self.myStaff))
 
     def open_billing(self):
-        self.show_text('Billing: this form is not built yet.')
+        self.setCentralWidget(BillingForm())
 
     def open_clerk_reports(self):
-        self.show_text('Clerk reports: this form is not built yet.')
+        self.setCentralWidget(ReportForm(self.myStaff, False))
 
     def open_management_reports(self):
-        self.show_text('Management reports: this form is not built yet.')
+        self.setCentralWidget(ReportForm(self.myStaff, True))
 
 
 def main():
