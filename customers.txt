@@ -2,3 +2,4 @@
 1002	Nguyen	Bao	78 Avenue du Parc, Montreal, QC H2X 1V6	514-555-0177	bao.nguyen@gmail.com	78 Avenue du Parc, Montreal, QC H2X 1V6	Active
 1003	Silva	Paulo	300 Boulevard Saint-Laurent, Montreal, QC H3H 1A1	438-555-0109	paulo.silva@gmail.com	55 Rue Rachel, Montreal, QC H1E 7C8	Active
 1004	Pires	Jennifer	247 rue Michel Auger Montreal, QC H9L 7Y7	514-693-6320	jpires@yahoo.com	14 chemin Paul Lemonnier Montreal, QC H5Z 1E4	Active
+1005	Smith	Clara	455 rue Sherbroke, Montreal, QC H9L 3I4	514-438-4580	csmith@outlook.com	455 rue Sherbroke, Montreal, QC H9L 3I4	Active

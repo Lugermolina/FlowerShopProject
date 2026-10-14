@@ -1,7 +1,7 @@
 # create an interactive Python program -> this is a Python comment
 # Author: Luis Gerardo Molina
 """
-Date: Sep 20, 2026
+Date: Starting on Sep 20, 2026
 Algorithm:
 Class: Python Teams online class
 Inputs: customer records for myCustomer1 to myCustomer3, end-user input for myCustomer4,

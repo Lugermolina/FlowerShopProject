@@ -1,7 +1,7 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Sep 20, 2026, updating started on Oct 10, 2026 for iteration 2
+Date: Starting on Sep 20, 2026, updating started on Oct 10, 2026 for iteration 2
 Algorithm:
 Class: Python Teams online class
 Inputs: customer number, last name, first name, home address, phone, email, delivery
@@ -52,7 +52,7 @@ class RegistrationForm(QWidget):
         self.field_delivery = QLineEdit()
 
         self.field_customer_id.setPlaceholderText('type a number to search; a new customer '
-                                                  'gets his number automatically')
+                                                  'gets the number automatically')
         self.field_address.setPlaceholderText('450 Rue Sherbrooke, Montreal, QC H2X 1Y4')
         self.field_phone.setPlaceholderText('514-555-0142')
         self.field_email.setPlaceholderText('name@gmail.com')
@@ -209,7 +209,7 @@ class RegistrationForm(QWidget):
                          + myCustomer.getFullName() + ', registered with the phone '
                          + myCustomer.getPhone() + '.', False)
 
-    # new method to display one customer found by his number
+    # new method to display one customer found by the number
     def searchCustomer(self):
         try:
             typed_id = int(self.field_customer_id.text())
@@ -245,7 +245,7 @@ class RegistrationForm(QWidget):
     def isCustomerLoaded(self):
         if (self.loaded_customer_id is None
                 or self.field_customer_id.text().strip() != str(self.loaded_customer_id)):
-            self.showMessage('Search the customer by his number first.', True)
+            self.showMessage('Search the customer by number first.', True)
             return False
         return True
 

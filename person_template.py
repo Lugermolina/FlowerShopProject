@@ -139,7 +139,7 @@ class Customer(Person):
                  phone=None, email=None, delivery_address=None, status=CUSTOMER_ACTIVE):
         super().__init__(person_id, last_name, first_name, address, phone, email)
         self.__delivery_address = delivery_address
-        # new data attribute to deactivate a customer without erasing his order history
+        # new data attribute to deactivate a customer without erasing their order history
         self.__status = status
 
     def getDeliveryAddress(self):
