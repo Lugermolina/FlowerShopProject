@@ -38,7 +38,7 @@ class ProductForm(QWidget):
         self.loaded_product_code = None
 
         self.label_title = QLabel('Catalog')
-        self.label_title.setStyleSheet('font-weight: bold;')
+        self.label_title.setObjectName('title')
         self.label_code = QLabel('Item code:')
         self.label_type = QLabel('Type:')
         self.label_name = QLabel('Name:')
@@ -229,7 +229,7 @@ class ProductForm(QWidget):
 
     def showPriceToPay(self, myProduct):
         self.label_price_to_pay.setText('Extra charge: ' + format(myProduct.getExtraCharge(), '.2f')
-                                        + ' $, price to pay: '
+                                        + ' $, price before taxes: '
                                         + format(myProduct.calculateDisplayPrice(), '.2f') + ' $')
 
     def addProduct(self):

@@ -1,16 +1,17 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Starting on Oct 11, 2026
+Date: Starting on Oct 11, 2026, updating started on Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: order number, the optional fees checked for this bill, the button pressed
-Processing: search of the order, calculation of the bill from the charges of
-charges.txt (subtotal, delivery fee for a delivery, optional fees, taxes, total),
-instantiation of one BillDetail object per charge, payment of the order
-Outputs: the bill displayed on the form, one line per charge stored in
-bill_details.txt with the month and the year, the order marked as paid in orders.txt,
-a confirmation or an error message displayed on the form
+Processing: search of the order, calculation of the bill from the charges of the
+charge table (subtotal, delivery fee for a delivery, optional fees, taxes, total),
+instantiation of one BillDetail object per charge, payment of the order through the
+database_manager module
+Outputs: the bill displayed on the form, one line per charge stored in the bill_detail
+table with the month and the year, the order marked as paid in the customer_order
+table, a confirmation or an error message displayed on the form
 """
 import sys
 import datetime
@@ -18,7 +19,7 @@ import datetime
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton,
                              QCheckBox, QTextEdit, QGridLayout, QHBoxLayout)
 
-import file_manager
+import database_manager
 from order_template import PAYMENT_PAID
 from billing_template import (BillDetail, CHARGE_SUBTOTAL, CHARGE_TOTAL, CHARGE_GST,
                               CHARGE_DELIVERY)
@@ -32,13 +33,13 @@ def build_bill_html(myOrder, bill_list, is_paid):
     customer_text = 'Walk-in customer'
     if myOrder.getCustomerId() is not None:
         customer_text = 'Customer ' + str(myOrder.getCustomerId())
-        myCustomer = file_manager.find_customer(myOrder.getCustomerId())
+        myCustomer = database_manager.find_customer(myOrder.getCustomerId())
         if myCustomer is not None:
             customer_text = (customer_text + ', ' + myCustomer.getFullName() + ', '
                              + myCustomer.getPhone())
 
     staff_text = str(myOrder.getStaffId())
-    myStaff = file_manager.find_staff(myOrder.getStaffId())
+    myStaff = database_manager.find_staff(myOrder.getStaffId())
     if myStaff is not None:
         staff_text = myStaff.getFullName()
 
@@ -69,7 +70,7 @@ def build_bill_html(myOrder, bill_list, is_paid):
     for myBillDetail in bill_list:
         charge_title = 'Charge ' + str(myBillDetail.getChargeNo())
         rate_text = ''
-        myCharge = file_manager.find_charge(myBillDetail.getChargeNo())
+        myCharge = database_manager.find_charge(myBillDetail.getChargeNo())
         if myCharge is not None:
             charge_title = myCharge.getChargeTitle()
             # the rate is displayed for the percentages applied to a base, the taxes
@@ -104,12 +105,12 @@ class BillingForm(QWidget):
 
         # the order displayed after a search, None while the form is empty
         self.loadedOrder = None
-        # the optional fees of charges.txt, in the same sequence as their check boxes
+        # the optional fees of the charge table, in the same sequence as their check boxes
         self.optional_charge_list = []
         self.optional_check_list = []
 
         self.label_title = QLabel('Bill an order')
-        self.label_title.setStyleSheet('font-weight: bold;')
+        self.label_title.setObjectName('title')
         self.label_order_id = QLabel('Order number:')
         self.label_optional = QLabel('Optional fees:')
         self.label_message = QLabel('')
@@ -147,7 +148,7 @@ class BillingForm(QWidget):
         # one check box per optional fee: a fee numbered from 301 is added to a bill
         # only when the clerk checks it, because it does not apply to every order
         row_optional = QHBoxLayout()
-        for myCharge in file_manager.load_charges():
+        for myCharge in database_manager.load_charges():
             if myCharge.getChargeNo() > CHARGE_DELIVERY and myCharge.getChargeNo() <= 399:
                 if myCharge.isPercent():
                     rate_text = str(myCharge.getChargeRate()) + ' %'
@@ -199,7 +200,7 @@ class BillingForm(QWidget):
             self.showMessage('Type the order number, for example 5001.', True)
             return
 
-        myOrder = file_manager.find_order(typed_id)
+        myOrder = database_manager.find_order(typed_id)
         if myOrder is None:
             self.clearForm()
             self.showMessage('There is no order with the number ' + str(typed_id) + '.', True)
@@ -208,11 +209,11 @@ class BillingForm(QWidget):
         self.loadedOrder = myOrder
         self.field_order_id.setText(str(myOrder.getOrderId()))
 
-        # a paid order displays its receipt, read from bill_details.txt, so it shows
+        # a paid order displays its receipt, read from the bill_detail table, so it shows
         # the rates and the amounts of the day of the payment
         if myOrder.getPaymentStatus() == PAYMENT_PAID:
             self.setOptionalEnabled(False)
-            bill_list = file_manager.load_order_bill(myOrder.getOrderId())
+            bill_list = database_manager.load_order_bill(myOrder.getOrderId())
             self.text_bill.setHtml(build_bill_html(myOrder, bill_list, True))
             self.showMessage('Order ' + str(myOrder.getOrderId())
                              + ' is already paid: this is its receipt.', False)
@@ -245,14 +246,14 @@ class BillingForm(QWidget):
         bill_list = []
 
         subtotal = round(myOrder.calculateSubtotal(), 2)
-        subtotalCharge = file_manager.find_charge(CHARGE_SUBTOTAL)
+        subtotalCharge = database_manager.find_charge(CHARGE_SUBTOTAL)
         bill_list.append(BillDetail(myOrder.getOrderId(), CHARGE_SUBTOTAL, subtotal,
                                     subtotalCharge.getChargeRate(), subtotal,
                                     today.month, today.year))
 
         fee_list = []
         if myOrder.isDelivery():
-            fee_list.append(file_manager.find_charge(CHARGE_DELIVERY))
+            fee_list.append(database_manager.find_charge(CHARGE_DELIVERY))
         for position in range(len(self.optional_check_list)):
             if self.optional_check_list[position].isChecked():
                 fee_list.append(self.optional_charge_list[position])
@@ -267,7 +268,7 @@ class BillingForm(QWidget):
         taxable_base = round(taxable_base, 2)
 
         total = taxable_base
-        for myCharge in file_manager.load_charges():
+        for myCharge in database_manager.load_charges():
             if myCharge.getChargeNo() >= CHARGE_GST and myCharge.getChargeNo() <= 299:
                 amount = myCharge.calculateAmount(taxable_base)
                 total = total + amount
@@ -276,7 +277,7 @@ class BillingForm(QWidget):
                                             today.month, today.year))
         total = round(total, 2)
 
-        totalCharge = file_manager.find_charge(CHARGE_TOTAL)
+        totalCharge = database_manager.find_charge(CHARGE_TOTAL)
         bill_list.append(BillDetail(myOrder.getOrderId(), CHARGE_TOTAL, total,
                                     totalCharge.getChargeRate(), total,
                                     today.month, today.year))
@@ -300,7 +301,7 @@ class BillingForm(QWidget):
             return
 
         # the order is read again, in case it changed since the search
-        myOrder = file_manager.find_order(self.loadedOrder.getOrderId())
+        myOrder = database_manager.find_order(self.loadedOrder.getOrderId())
         if myOrder is None or myOrder.getPaymentStatus() == PAYMENT_PAID:
             self.showMessage('Search the order again: it changed since it was displayed.', True)
             return
@@ -308,15 +309,12 @@ class BillingForm(QWidget):
 
         bill_list = self.calculateBill()
         for myBillDetail in bill_list:
-            file_manager.save_bill_detail(myBillDetail)
+            database_manager.save_bill_detail(myBillDetail)
 
-        order_list = file_manager.load_orders()
-        for savedOrder in order_list:
-            if savedOrder.getOrderId() == myOrder.getOrderId():
-                savedOrder.setPaymentStatus(PAYMENT_PAID)
-        file_manager.save_orders(order_list)
-
+        # updated: one UPDATE of the order replaces the rewriting of the whole file
         myOrder.setPaymentStatus(PAYMENT_PAID)
+        database_manager.update_order(myOrder)
+
         self.setOptionalEnabled(False)
         self.text_bill.setHtml(build_bill_html(myOrder, bill_list, True))
         self.showMessage('Order ' + str(myOrder.getOrderId()) + ' paid, total '
@@ -327,8 +325,8 @@ def main():
     # instantiate an object app from QApplication
     app = QApplication(sys.argv)
 
-    # the charges of the bill are created when charges.txt holds no record
-    file_manager.create_default_data()
+    # the charges of the bill are created when the charge table holds no record
+    database_manager.create_default_data()
 
     # create the window of the billing form
     window = BillingForm()

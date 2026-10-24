@@ -1,15 +1,15 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Starting on Oct 10, 2026
+Date: Starting on Oct 10, 2026, updating started on Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: charge number, title, rate, kind of charge (percent or fixed amount), the
 button pressed
 Processing: validation of the entered values, instantiation of a Charge object, add,
-search, update and delete of a record through the file_manager module, rules that
-protect the charges the billing form depends on
-Outputs: the charge record added to, changed in or removed from charges.txt, the
+search, update and delete of a record through the database_manager module, rules
+that protect the charges the billing form depends on
+Outputs: the charge record added to, changed in or removed from the charge table, the
 record found displayed in the fields, the list of all the charges, a confirmation or
 an error message displayed on the form
 """
@@ -18,7 +18,7 @@ import sys
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton,
                              QComboBox, QTextEdit, QGridLayout, QHBoxLayout, QMessageBox)
 
-import file_manager
+import database_manager
 from billing_template import (Charge, CHARGE_PERCENT, CHARGE_FIXED, CHARGE_SUBTOTAL,
                               CHARGE_TOTAL, CHARGE_GST, CHARGE_QST, CHARGE_DELIVERY)
 
@@ -38,7 +38,7 @@ class ChargeForm(QWidget):
         self.loaded_charge_no = None
 
         self.label_title = QLabel('Charges of the bill')
-        self.label_title.setStyleSheet('font-weight: bold;')
+        self.label_title.setObjectName('title')
         self.label_charge_no = QLabel('Charge number:')
         self.label_charge_title = QLabel('Title:')
         self.label_rate = QLabel('Rate:')
@@ -119,7 +119,7 @@ class ChargeForm(QWidget):
         html_text = ('<table border="1" cellspacing="0" cellpadding="4">'
                      '<tr><th align="right">Number</th><th align="left">Title</th>'
                      '<th align="right">Rate</th><th align="left">Kind</th></tr>')
-        for myCharge in file_manager.load_charges():
+        for myCharge in database_manager.load_charges():
             if myCharge.isPercent():
                 rate_text = str(myCharge.getChargeRate()) + ' %'
             else:
@@ -187,7 +187,7 @@ class ChargeForm(QWidget):
             self.showMessage('The charge number must be between 200 and 399.', True)
             return
 
-        if file_manager.find_charge(new_charge_no) is not None:
+        if database_manager.find_charge(new_charge_no) is not None:
             self.showMessage('The charge number ' + str(new_charge_no) + ' is already used.', True)
             return
 
@@ -195,7 +195,7 @@ class ChargeForm(QWidget):
         if myCharge is None:
             return
 
-        file_manager.save_charge(myCharge)
+        database_manager.save_charge(myCharge)
 
         self.clearFields()
         self.showCharges()
@@ -209,7 +209,7 @@ class ChargeForm(QWidget):
             self.showMessage('Type the charge number, for example 300.', True)
             return
 
-        myCharge = file_manager.find_charge(typed_no)
+        myCharge = database_manager.find_charge(typed_no)
         if myCharge is None:
             self.clearFields()
             self.showMessage('There is no charge with the number ' + str(typed_no) + '.', True)
@@ -235,7 +235,7 @@ class ChargeForm(QWidget):
         return True
 
     # a new rate applies to the bills paid from now on; the bills already paid keep
-    # the rate and the amount stored in bill_details.txt
+    # the rate and the amount stored in the bill_detail table
     def updateCharge(self):
         if not self.isChargeLoaded():
             return
@@ -249,11 +249,8 @@ class ChargeForm(QWidget):
         if myCharge is None:
             return
 
-        charge_list = file_manager.load_charges()
-        for position in range(len(charge_list)):
-            if charge_list[position].getChargeNo() == self.loaded_charge_no:
-                charge_list[position] = myCharge
-        file_manager.save_charges(charge_list)
+        # updated: one UPDATE of the charge row replaces the rewriting of the whole file
+        database_manager.update_charge(myCharge)
 
         self.showCharges()
         self.showMessage('Charge ' + str(myCharge.getChargeNo()) + ', '
@@ -272,7 +269,7 @@ class ChargeForm(QWidget):
                              'bill and cannot be deleted.', True)
             return
 
-        for myBillDetail in file_manager.load_bill_details():
+        for myBillDetail in database_manager.load_bill_details():
             if myBillDetail.getChargeNo() == charge_no:
                 self.showMessage('Charge ' + str(charge_no) + ' cannot be deleted: the bill '
                                  'of order ' + str(myBillDetail.getOrderId()) + ' holds it.', True)
@@ -283,11 +280,8 @@ class ChargeForm(QWidget):
         if answer != QMessageBox.StandardButton.Yes:
             return
 
-        new_charge_list = []
-        for myCharge in file_manager.load_charges():
-            if myCharge.getChargeNo() != charge_no:
-                new_charge_list.append(myCharge)
-        file_manager.save_charges(new_charge_list)
+        # updated: one DELETE of the charge row replaces the rewriting of the whole file
+        database_manager.delete_charge(charge_no)
 
         self.clearFields()
         self.showCharges()
@@ -298,8 +292,8 @@ def main():
     # instantiate an object app from QApplication
     app = QApplication(sys.argv)
 
-    # the charges of the bill are created when charges.txt holds no record
-    file_manager.create_default_data()
+    # the charges of the bill are created when the charge table holds no record
+    database_manager.create_default_data()
 
     # create the window of the charge form
     window = ChargeForm()

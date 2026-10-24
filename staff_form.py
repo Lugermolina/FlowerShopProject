@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButt
 import database_manager
 from eye_icon import make_eye_icon
 from person_template import (Staff, is_valid_phone, is_valid_email, ACCESS_ADMIN,
-                             ACCESS_MANAGER, ACCESS_CLERK)
+                             ACCESS_MANAGER, ACCESS_CLERK, ACCESS_INACTIVE)
 
 PASSWORD_MIN_LENGTH = 6
 
@@ -38,7 +38,7 @@ class StaffForm(QWidget):
         self.loaded_staff_id = None
 
         self.label_title = QLabel('Staff')
-        self.label_title.setStyleSheet('font-weight: bold;')
+        self.label_title.setObjectName('title')
         self.label_staff_id = QLabel('Staff number:')
         self.label_last_name = QLabel('Last name:')
         self.label_first_name = QLabel('First name:')
@@ -81,6 +81,7 @@ class StaffForm(QWidget):
         self.combo_access_level.addItem(ACCESS_CLERK)
         self.combo_access_level.addItem(ACCESS_MANAGER)
         self.combo_access_level.addItem(ACCESS_ADMIN)
+        self.combo_access_level.addItem(ACCESS_INACTIVE)
 
         self.button_add = QPushButton('Add')
         self.button_search = QPushButton('Search')
@@ -329,8 +330,8 @@ class StaffForm(QWidget):
             self.showMessage('Employee ' + str(myStaff.getPersonId()) + ', '
                              + myStaff.getFullName() + ', updated.', False)
 
-    # an employee cannot be deleted when it is the account in use, the last admin
-    # account, or the employee recorded on an order
+    # an employee cannot be deleted when it is the account in use or the last admin
+    # account; an employee recorded on an order is kept and becomes inactive
     def deleteStaff(self):
         if not self.isStaffLoaded():
             return
@@ -350,9 +351,8 @@ class StaffForm(QWidget):
         for myOrder in database_manager.load_orders():
             if myOrder.getStaffId() == staff_id:
                 total_orders = total_orders + 1
-        if total_orders > 0:
-            self.showMessage('Employee ' + str(staff_id) + ' cannot be deleted: '
-                             + str(total_orders) + ' order(s) were taken by this employee.', True)
+        if total_orders > 0 and not oldStaff.isActive():
+            self.showMessage('Employee ' + str(staff_id) + ' is already inactive.', True)
             return
 
         answer = QMessageBox.question(self, 'Delete employee',
@@ -360,11 +360,21 @@ class StaffForm(QWidget):
         if answer != QMessageBox.StandardButton.Yes:
             return
 
-        # updated: one DELETE of the staff row replaces the rewriting of the whole file
-        database_manager.delete_staff(staff_id)
+        # updated: an employee who left keeps the row, because the orders refer to it,
+        # with the Inactive access level; without orders the row is deleted
+        if total_orders > 0:
+            oldStaff.setAccessLevel(ACCESS_INACTIVE)
+            database_manager.update_staff(oldStaff)
+        else:
+            database_manager.delete_staff(staff_id)
 
         self.clearFields()
-        self.showMessage('Employee ' + str(staff_id) + ' deleted.', False)
+        if total_orders > 0:
+            self.showMessage('Employee ' + str(staff_id) + ' took ' + str(total_orders)
+                             + ' order(s): the record is kept and the account is now inactive.',
+                             False)
+        else:
+            self.showMessage('Employee ' + str(staff_id) + ' deleted.', False)
 
 
 def main():

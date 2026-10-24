@@ -420,10 +420,19 @@ def load_bill_details():
                                               'ORDER BY order_id, charge_no'))
 
 
-# an empty list means the order was never billed
+# an empty list means the order was never billed; the total is moved to the last line,
+# because its number 101 comes before the taxes and the fees
 def load_order_bill(order_id):
-    return bill_details_from_rows(select_rows('SELECT * FROM bill_detail WHERE order_id = %s',
-                                              (order_id,)))
+    bill_list = []
+    total_list = []
+    for myBillDetail in bill_details_from_rows(select_rows('SELECT * FROM bill_detail '
+                                                           'WHERE order_id = %s ORDER BY charge_no',
+                                                           (order_id,))):
+        if myBillDetail.getChargeNo() == CHARGE_TOTAL:
+            total_list.append(myBillDetail)
+        else:
+            bill_list.append(myBillDetail)
+    return bill_list + total_list
 
 
 # called when the application starts: it creates the first admin account and the

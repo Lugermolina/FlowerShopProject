@@ -28,7 +28,7 @@ class LoginForm(QWidget):
         self.main_window = main_window
 
         self.label_title = QLabel('Flower Shop Management System')
-        self.label_title.setStyleSheet('font-weight: bold;')
+        self.label_title.setObjectName('title')
         self.label_username = QLabel('Username:')
         self.label_password = QLabel('Password:')
         self.label_message = QLabel('')
@@ -122,6 +122,12 @@ class LoginForm(QWidget):
             return
 
         self.field_password.setText('')
+
+        # new: the account of an employee who left cannot open a session
+        if not myStaff.isActive():
+            self.showMessage('This account is inactive. An admin can activate it again.', True)
+            return
+
         self.showMessage('Welcome, ' + myStaff.getFullName() + ' ('
                          + myStaff.getAccessLevel() + ').', False)
 

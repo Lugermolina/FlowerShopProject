@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButt
 import database_manager
 
 ALL_CATEGORIES = 'All categories'
-COLUMN_TITLES = ['Code', 'Item', 'Category', 'Unit price', 'Extra', 'Price to pay',
+COLUMN_TITLES = ['Code', 'Item', 'Category', 'Unit price', 'Extra', 'Price before taxes',
                  'Stock', 'Available']
 
 
@@ -29,9 +29,9 @@ class CatalogForm(QWidget):
         self.setWindowTitle('Flower Shop, catalog search')
 
         self.label_title = QLabel('Search the catalog')
-        self.label_title.setStyleSheet('font-weight: bold;')
+        self.label_title.setObjectName('title')
         self.label_category = QLabel('Category:')
-        self.label_min_price = QLabel('Price to pay from:')
+        self.label_min_price = QLabel('Price before taxes from:')
         self.label_max_price = QLabel('to:')
         self.label_message = QLabel('')
 
@@ -52,6 +52,7 @@ class CatalogForm(QWidget):
         self.table_results.setColumnCount(len(COLUMN_TITLES))
         self.table_results.setHorizontalHeaderLabels(COLUMN_TITLES)
         self.table_results.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_results.setAlternatingRowColors(True)
 
         self.build_layout()
 

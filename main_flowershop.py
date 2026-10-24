@@ -34,7 +34,8 @@ WINDOW_TITLE = 'Flower Shop Management System'
 
 # new: one style sheet for the whole application, in the colors of the flower shop: a muted
 # rose for the main buttons, the menus and the table headers, neutral grays and white for
-# the work areas, Clear with a gray outline, Delete outlined in dark red
+# the work areas, Clear with a gray outline, Delete outlined in dark red, the form titles
+# in rose
 ACCENT = '#A23E5C'
 APP_STYLE = """
 QWidget { background-color: #F7F5F6; color: #2B2B2B; font-family: "Segoe UI"; font-size: 10pt; }
@@ -54,13 +55,15 @@ QPushButton[text="Delete"], QPushButton[text="Remove selected line"] {
     background-color: #FFFFFF; color: #9B1C1C; border: 1px solid #9B1C1C; }
 QPushButton[text="Delete"]:hover, QPushButton[text="Remove selected line"]:hover {
     background-color: #FBEAEA; }
-QMenuBar { background-color: #FFFFFF; border-bottom: 1px solid #E2DCDF; }
+QMenuBar { background-color: #FFFFFF; border-bottom: 3px solid ACCENT; }
 QMenuBar::item { padding: 6px 12px; background: transparent; }
 QMenuBar::item:selected { background-color: #F3E6EA; color: ACCENT; }
 QMenu { background-color: #FFFFFF; border: 1px solid #E2DCDF; }
 QMenu::item { padding: 6px 24px; }
 QMenu::item:selected { background-color: ACCENT; color: #FFFFFF; }
-QTableWidget { background-color: #FFFFFF; gridline-color: #E2DCDF;
+QLabel#title { color: ACCENT; font-size: 14pt; font-weight: bold; }
+QTableWidget { background-color: #FFFFFF; alternate-background-color: #FBF3F6;
+    gridline-color: #E2DCDF;
     selection-background-color: #F3E6EA; selection-color: #2B2B2B; }
 QHeaderView::section { background-color: ACCENT; color: #FFFFFF; padding: 5px;
     border: none; font-weight: bold; }

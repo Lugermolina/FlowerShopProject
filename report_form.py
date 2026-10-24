@@ -1,13 +1,13 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Starting on Oct 11, 2026
+Date: Starting on Oct 11, 2026, updating started on Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: the report selected in the list, the value the report asks for (customer
 number, date, order number or stock level), the Show button
 Processing: reading of the customers, the staff, the catalog, the orders and the
-bills through the file_manager module, selection and totaling of the records of the
+bills through the database_manager module, selection and totaling of the records of the
 report selected
 Outputs: the report displayed as a table, with the numbers and their column headings
 aligned to the right, and the number of records found
@@ -18,7 +18,7 @@ import datetime
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton,
                              QComboBox, QTextEdit, QGridLayout)
 
-import file_manager
+import database_manager
 from order_template import PAYMENT_PAID
 from billing_template import CHARGE_SUBTOTAL, CHARGE_TOTAL, CHARGE_GST, CHARGE_DELIVERY
 from billing_form import build_bill_html
@@ -49,7 +49,7 @@ class ReportForm(QWidget):
             self.label_title = QLabel('Management reports')
         else:
             self.label_title = QLabel('Clerk reports')
-        self.label_title.setStyleSheet('font-weight: bold;')
+        self.label_title.setObjectName('title')
         self.label_report = QLabel('Report:')
         self.label_value = QLabel('')
         self.label_message = QLabel('')
@@ -151,13 +151,13 @@ class ReportForm(QWidget):
     def getCustomerName(self, myOrder):
         if myOrder.getCustomerId() is None:
             return 'Walk-in customer'
-        myCustomer = file_manager.find_customer(myOrder.getCustomerId())
+        myCustomer = database_manager.find_customer(myOrder.getCustomerId())
         if myCustomer is None:
             return 'Customer ' + str(myOrder.getCustomerId())
         return myCustomer.getFullName()
 
     def getStaffName(self, myOrder):
-        myStaff = file_manager.find_staff(myOrder.getStaffId())
+        myStaff = database_manager.find_staff(myOrder.getStaffId())
         if myStaff is None:
             return 'Employee ' + str(myOrder.getStaffId())
         return myStaff.getFullName()
@@ -174,7 +174,7 @@ class ReportForm(QWidget):
         elif selected_report == REPORT_ALL_CUSTOMERS:
             self.showAllCustomers()
         elif selected_report == REPORT_ALL_ORDERS:
-            self.showOrderList(file_manager.load_orders(), 'All the orders')
+            self.showOrderList(database_manager.load_orders(), 'All the orders')
         elif selected_report == REPORT_SALES:
             self.showSales()
         elif selected_report == REPORT_LOW_STOCK:
@@ -215,13 +215,13 @@ class ReportForm(QWidget):
             self.showMessage('Type the customer number, for example 1001.', True)
             return
 
-        myCustomer = file_manager.find_customer(typed_id)
+        myCustomer = database_manager.find_customer(typed_id)
         if myCustomer is None:
             self.text_report.setHtml('')
             self.showMessage('There is no customer with the number ' + str(typed_id) + '.', True)
             return
 
-        self.showOrderList(file_manager.load_customer_orders(typed_id),
+        self.showOrderList(database_manager.load_customer_orders(typed_id),
                            'Orders of customer ' + str(typed_id) + ', '
                            + myCustomer.getFullName() + ' (' + myCustomer.getStatus() + ')')
 
@@ -236,10 +236,10 @@ class ReportForm(QWidget):
             return
 
         row_list = []
-        for myOrder in file_manager.load_orders():
+        for myOrder in database_manager.load_orders():
             if myOrder.isDelivery() and myOrder.getDeliveryDate() == typed_date:
                 phone_text = ''
-                myCustomer = file_manager.find_customer(myOrder.getCustomerId())
+                myCustomer = database_manager.find_customer(myOrder.getCustomerId())
                 if myCustomer is not None:
                     phone_text = myCustomer.getPhone()
 
@@ -268,7 +268,7 @@ class ReportForm(QWidget):
             self.showMessage('Type the order number, for example 5001.', True)
             return
 
-        myOrder = file_manager.find_order(typed_id)
+        myOrder = database_manager.find_order(typed_id)
         if myOrder is None:
             self.text_report.setHtml('')
             self.showMessage('There is no order with the number ' + str(typed_id) + '.', True)
@@ -280,21 +280,21 @@ class ReportForm(QWidget):
             return
 
         # the receipt is the bill stored on the day of the payment
-        bill_list = file_manager.load_order_bill(typed_id)
+        bill_list = database_manager.load_order_bill(typed_id)
         self.text_report.setHtml(build_bill_html(myOrder, bill_list, True))
         self.showMessage('Receipt of order ' + str(typed_id) + '.', False)
 
     def showAllCustomers(self):
         row_list = []
         total_active = 0
-        for myCustomer in file_manager.load_customers():
+        for myCustomer in database_manager.load_customers():
             if myCustomer.isActive():
                 total_active = total_active + 1
             row_list.append([myCustomer.getPersonId(), myCustomer.getFullName(),
                              myCustomer.getPhone(), myCustomer.getEmail(),
                              myCustomer.getAddress(), myCustomer.getDeliveryAddress(),
                              myCustomer.getStatus(),
-                             len(file_manager.load_customer_orders(myCustomer.getPersonId()))])
+                             len(database_manager.load_customer_orders(myCustomer.getPersonId()))])
 
         html_text = '<h3>All the customers</h3>' + self.buildTable(
             ['Number', 'Name', 'Phone', 'Email', 'Home address', 'Delivery address',
@@ -306,12 +306,12 @@ class ReportForm(QWidget):
                          + ' inactive.', False)
 
     # summary report: the paid bills grouped by month, each amount of
-    # bill_details.txt added to the column of its group of charges
+    # the bill_detail table added to the column of its group of charges
     def showSales(self):
         month_list = []
         summary_list = []
 
-        for myBillDetail in file_manager.load_bill_details():
+        for myBillDetail in database_manager.load_bill_details():
             month_text = (str(myBillDetail.getYear()) + '-'
                           + format(myBillDetail.getMonth(), '02d'))
             if month_text not in month_list:
@@ -362,7 +362,7 @@ class ReportForm(QWidget):
             return
 
         row_list = []
-        for myProduct in file_manager.load_products():
+        for myProduct in database_manager.load_products():
             if myProduct.getStockQty() <= stock_level:
                 if myProduct.isAvailable():
                     remark = 'Low'
@@ -374,7 +374,7 @@ class ReportForm(QWidget):
                                  myProduct.getStockQty(), remark])
 
         html_text = ('<h3>Items with a stock of ' + str(stock_level) + ' or less</h3>'
-                     + self.buildTable(['Code', 'Item', 'Category', 'Price to pay', 'Stock',
+                     + self.buildTable(['Code', 'Item', 'Category', 'Price before taxes', 'Stock',
                                         'Remark'],
                                        ['left', 'left', 'left', 'right', 'right', 'left'],
                                        row_list))
@@ -384,14 +384,14 @@ class ReportForm(QWidget):
     # exception report: only the orders that are not paid yet
     def showUnpaidOrders(self):
         unpaid_list = []
-        for myOrder in file_manager.load_orders():
+        for myOrder in database_manager.load_orders():
             if myOrder.getPaymentStatus() != PAYMENT_PAID:
                 unpaid_list.append(myOrder)
         self.showOrderList(unpaid_list, 'Unpaid orders')
 
     def showStaff(self):
         row_list = []
-        for myStaff in file_manager.load_staff():
+        for myStaff in database_manager.load_staff():
             row_list.append([myStaff.getPersonId(), myStaff.getFullName(),
                              myStaff.getPosition(), myStaff.getUsername(),
                              myStaff.getAccessLevel(), myStaff.getPhone(), myStaff.getEmail()])
@@ -408,8 +408,8 @@ def main():
     app = QApplication(sys.argv)
 
     # started alone, the form shows the management reports of the first staff account
-    file_manager.create_default_data()
-    first_staff = file_manager.load_staff()[0]
+    database_manager.create_default_data()
+    first_staff = database_manager.load_staff()[0]
 
     # create the window of the report form
     window = ReportForm(first_staff, True)

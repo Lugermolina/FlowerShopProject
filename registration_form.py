@@ -33,7 +33,7 @@ class RegistrationForm(QWidget):
         self.loaded_customer_id = None
 
         self.label_title = QLabel('Customers')
-        self.label_title.setStyleSheet('font-weight: bold;')
+        self.label_title.setObjectName('title')
         self.label_customer_id = QLabel('Customer number:')
         self.label_status = QLabel('')
         self.label_last_name = QLabel('Last name:')

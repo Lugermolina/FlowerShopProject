@@ -1,7 +1,7 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Sep 20, 2026, updated Oct 10, 2026 for iteration 2
+Date: Sep 20, 2026, updated Oct 10, 2026 for iteration 2, and Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: person_id, last_name, first_name, address, phone, email, delivery_address, status,
@@ -17,6 +17,8 @@ import hashlib
 ACCESS_ADMIN = 'Admin'
 ACCESS_MANAGER = 'Manager'
 ACCESS_CLERK = 'Clerk'
+# new: the access level of an employee who left; the account cannot log in
+ACCESS_INACTIVE = 'Inactive'
 
 # two customers' possible states
 CUSTOMER_ACTIVE = 'Active'
@@ -215,6 +217,10 @@ class Staff(Person):
     # manager and to an admin
     def canManage(self):
         return self.getAccessLevel() == ACCESS_MANAGER or self.isAdmin()
+
+    # new method: an inactive account keeps its history but cannot log in
+    def isActive(self):
+        return self.getAccessLevel() != ACCESS_INACTIVE
 
     def getRole(self):
         return 'Staff'

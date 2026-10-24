@@ -1,7 +1,7 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Starting on Oct 11, 2026
+Date: Starting on Oct 11, 2026, updating started on Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: order number, customer number or the walk-in check box, type of order (pickup
@@ -9,11 +9,12 @@ or delivery), delivery address, pickup or delivery date, order status, item sele
 in the catalog, quantity, the button pressed
 Processing: search of the customer, validation of the entered values, check of each
 quantity against the stock, instantiation of Order and OrderItem objects, add, search,
-update and delete of an order through the file_manager module, adjustment of the stock
-of the catalog
-Outputs: the order stored in orders.txt and its lines in order_items.txt, the stock
-updated in products.txt, the order found displayed on the form with its lines and its
-subtotal, a confirmation or an error message displayed on the form
+update and delete of an order through the database_manager module, adjustment of the
+stock of the catalog
+Outputs: the order stored in the customer_order table and its lines in the order_item
+table, the stock updated in the product table, the order found displayed on the form
+with its lines and its subtotal, a confirmation or an error message displayed on the
+form
 """
 import sys
 import datetime
@@ -22,7 +23,7 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButt
                              QComboBox, QCheckBox, QGridLayout, QHBoxLayout, QMessageBox,
                              QTableWidget, QTableWidgetItem, QAbstractItemView)
 
-import file_manager
+import database_manager
 from order_template import (Order, OrderItem, ORDER_PICKUP, ORDER_DELIVERY, STATUS_NEW,
                             STATUS_READY, STATUS_COMPLETED, PAYMENT_UNPAID, PAYMENT_PAID)
 
@@ -46,7 +47,7 @@ class OrderForm(QWidget):
         self.product_list = []
 
         self.label_title = QLabel('Orders')
-        self.label_title.setStyleSheet('font-weight: bold;')
+        self.label_title.setObjectName('title')
         self.label_order_id = QLabel('Order number:')
         self.label_order_info = QLabel('')
         self.label_customer_id = QLabel('Customer number:')
@@ -92,6 +93,7 @@ class OrderForm(QWidget):
         self.table_items.setColumnCount(len(COLUMN_TITLES))
         self.table_items.setHorizontalHeaderLabels(COLUMN_TITLES)
         self.table_items.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_items.setAlternatingRowColors(True)
         self.table_items.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 
         self.button_find_customer = QPushButton('Find customer')
@@ -177,7 +179,7 @@ class OrderForm(QWidget):
 
     # the list of items is read from the catalog again after every change of stock
     def loadProducts(self):
-        self.product_list = file_manager.load_products()
+        self.product_list = database_manager.load_products()
         self.combo_product.clear()
         for myProduct in self.product_list:
             self.combo_product.addItem(myProduct.getProductCode() + ', '
@@ -262,7 +264,7 @@ class OrderForm(QWidget):
             self.showMessage('The customer number must be a number, for example 1001.', True)
             return False
 
-        myCustomer = file_manager.find_customer(typed_id)
+        myCustomer = database_manager.find_customer(typed_id)
         if myCustomer is None:
             self.label_customer_info.setText('')
             self.showMessage('There is no customer with the number ' + str(typed_id) + '.', True)
@@ -418,7 +420,7 @@ class OrderForm(QWidget):
     # an order is deleted, and moves by the difference when an order is updated.
     # The method returns False, and changes nothing, when the stock is not enough
     def adjustStock(self, old_item_list, new_item_list):
-        product_list = file_manager.load_products()
+        product_list = database_manager.load_products()
 
         for myProduct in product_list:
             difference = (self.getLineQuantity(new_item_list, myProduct.getProductCode())
@@ -429,12 +431,13 @@ class OrderForm(QWidget):
                                  + ' left.', True)
                 return False
 
+        # updated: only the items whose stock changes are written, one UPDATE each
         for myProduct in product_list:
             difference = (self.getLineQuantity(new_item_list, myProduct.getProductCode())
                           - self.getLineQuantity(old_item_list, myProduct.getProductCode()))
-            myProduct.setStockQty(myProduct.getStockQty() - difference)
-
-        file_manager.save_products(product_list)
+            if difference != 0:
+                myProduct.setStockQty(myProduct.getStockQty() - difference)
+                database_manager.update_product(myProduct)
         return True
 
     def addOrder(self):
@@ -447,7 +450,8 @@ class OrderForm(QWidget):
             self.showMessage('Log in before adding an order.', True)
             return
 
-        new_order_id = file_manager.next_order_id(file_manager.load_orders())
+        # updated: the next number comes from the highest one in the customer_order table
+        new_order_id = database_manager.next_order_id()
         today_text = str(datetime.date.today())
 
         myOrder = self.readOrder(new_order_id, self.current_staff.getPersonId(), today_text,
@@ -458,7 +462,7 @@ class OrderForm(QWidget):
         if not self.adjustStock([], myOrder.getItemList()):
             return
 
-        file_manager.save_order(myOrder)
+        database_manager.save_order(myOrder)
 
         subtotal = myOrder.calculateSubtotal()
         self.clearFields()
@@ -473,7 +477,7 @@ class OrderForm(QWidget):
             self.showMessage('Type the order number, for example 5001.', True)
             return
 
-        myOrder = file_manager.find_order(typed_id)
+        myOrder = database_manager.find_order(typed_id)
         if myOrder is None:
             self.clearFields()
             self.showMessage('There is no order with the number ' + str(typed_id) + '.', True)
@@ -484,7 +488,7 @@ class OrderForm(QWidget):
         self.field_order_id.setText(str(myOrder.getOrderId()))
 
         staff_name = ''
-        myStaff = file_manager.find_staff(myOrder.getStaffId())
+        myStaff = database_manager.find_staff(myOrder.getStaffId())
         if myStaff is not None:
             staff_name = ', taken by ' + myStaff.getFullName()
         self.label_order_info.setText('Ordered on ' + myOrder.getOrderDate() + staff_name
@@ -498,7 +502,7 @@ class OrderForm(QWidget):
         self.button_find_customer.setEnabled(False)
         if myOrder.getCustomerId() is not None:
             self.field_customer_id.setText(str(myOrder.getCustomerId()))
-            myCustomer = file_manager.find_customer(myOrder.getCustomerId())
+            myCustomer = database_manager.find_customer(myOrder.getCustomerId())
             if myCustomer is not None:
                 self.label_customer_info.setText(myCustomer.getFullName() + ', '
                                                  + myCustomer.getPhone())
@@ -557,11 +561,8 @@ class OrderForm(QWidget):
         if not self.adjustStock(oldOrder.getItemList(), myOrder.getItemList()):
             return
 
-        order_list = file_manager.load_orders()
-        for position in range(len(order_list)):
-            if order_list[position].getOrderId() == myOrder.getOrderId():
-                order_list[position] = myOrder
-        file_manager.save_orders(order_list)
+        # updated: the order row and its lines are rewritten with one commit
+        database_manager.update_order(myOrder)
 
         updated_id = myOrder.getOrderId()
         self.field_order_id.setText(str(updated_id))
@@ -589,11 +590,8 @@ class OrderForm(QWidget):
 
         self.adjustStock(oldOrder.getItemList(), [])
 
-        new_order_list = []
-        for myOrder in file_manager.load_orders():
-            if myOrder.getOrderId() != oldOrder.getOrderId():
-                new_order_list.append(myOrder)
-        file_manager.save_orders(new_order_list)
+        # updated: the order row and its lines are deleted with one commit
+        database_manager.delete_order(oldOrder.getOrderId())
 
         self.clearFields()
         self.showMessage('Order ' + str(oldOrder.getOrderId())
@@ -605,8 +603,8 @@ def main():
     app = QApplication(sys.argv)
 
     # started alone, the form records the orders under the first staff account
-    file_manager.create_default_data()
-    first_staff = file_manager.load_staff()[0]
+    database_manager.create_default_data()
+    first_staff = database_manager.load_staff()[0]
 
     # create the window of the order form
     window = OrderForm(first_staff)
