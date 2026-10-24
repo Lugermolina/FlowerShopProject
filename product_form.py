@@ -1,16 +1,16 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Starting on Oct 10, 2026
+Date: Starting on Oct 10, 2026, updating started on Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: item code, type of item, name, category, unit price, stock, number of flowers
 or pot size, the button pressed
 Processing: validation of the entered values, generation of the item code,
 instantiation of a Product, Bouquet or PottedPlant object, add, search, update and
-delete of a record through the file_manager module, delete rule based on the orders
-that hold the item
-Outputs: the catalog record added to, changed in or removed from products.txt, the
+delete of a record through the database_manager module, delete rule based on the
+orders that hold the item and on its restocks
+Outputs: the catalog record added to, changed in or removed from the product table, the
 record found displayed in the fields, a confirmation or an error message displayed
 on the form
 """
@@ -20,7 +20,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton,
                              QComboBox, QGridLayout, QHBoxLayout, QMessageBox, QCompleter)
 
-import file_manager
+import database_manager
 from product_template import Product, Bouquet, PottedPlant
 
 TYPE_BOUQUET = 'Bouquet'
@@ -123,7 +123,7 @@ class ProductForm(QWidget):
     # the same category is not written in two different ways
     def loadCategorySuggestions(self):
         category_list = []
-        for myProduct in file_manager.load_products():
+        for myProduct in database_manager.load_products():
             if myProduct.getCategory() not in category_list:
                 category_list.append(myProduct.getCategory())
 
@@ -238,14 +238,14 @@ class ProductForm(QWidget):
                              'record, or Clear to add a new item.', True)
             return
 
-        product_list = file_manager.load_products()
-        new_code = file_manager.next_product_code(product_list, self.getCodeLetter())
+        # updated: the next code comes from the codes of the same letter in the product table
+        new_code = database_manager.next_product_code(self.getCodeLetter())
 
         myProduct = self.readProduct(new_code)
         if myProduct is None:
             return
 
-        file_manager.save_product(myProduct)
+        database_manager.save_product(myProduct)
         self.loadCategorySuggestions()
 
         self.clearFields()
@@ -259,7 +259,7 @@ class ProductForm(QWidget):
             self.showMessage('Type the item code, for example B001.', True)
             return
 
-        myProduct = file_manager.find_product(typed_code)
+        myProduct = database_manager.find_product(typed_code)
         if myProduct is None:
             self.clearFields()
             self.showMessage('There is no item with the code ' + typed_code + '.', True)
@@ -304,11 +304,8 @@ class ProductForm(QWidget):
         if myProduct is None:
             return
 
-        product_list = file_manager.load_products()
-        for position in range(len(product_list)):
-            if product_list[position].getProductCode() == self.loaded_product_code:
-                product_list[position] = myProduct
-        file_manager.save_products(product_list)
+        # updated: one UPDATE of the product row replaces the rewriting of the whole file
+        database_manager.update_product(myProduct)
         self.loadCategorySuggestions()
 
         self.showPriceToPay(myProduct)
@@ -316,14 +313,15 @@ class ProductForm(QWidget):
                          + myProduct.getProductName() + ', updated.', False)
 
     # an item cannot be deleted while an order that is not completed and paid holds
-    # it; finished orders keep their own copy of the name and the prices
+    # it; finished orders keep their own copy of the name and the prices. An item that
+    # was restocked cannot be deleted either, because the restock history refers to it
     def deleteProduct(self):
         if not self.isProductLoaded():
             return
 
         product_code = self.loaded_product_code
 
-        for myOrder in file_manager.load_orders():
+        for myOrder in database_manager.load_orders():
             if myOrder.isActive():
                 for myItem in myOrder.getItemList():
                     if myItem.getProductCode() == product_code:
@@ -332,16 +330,20 @@ class ProductForm(QWidget):
                                          + ' holds it and is not completed and paid.', True)
                         return
 
+        # new: the restock table refers to the product, so the row must stay
+        total_restocks = database_manager.count_product_restocks(product_code)
+        if total_restocks > 0:
+            self.showMessage('Item ' + product_code + ' cannot be deleted: '
+                             + str(total_restocks) + ' restock(s) from suppliers refer to it.', True)
+            return
+
         answer = QMessageBox.question(self, 'Delete item',
                                       'Delete item ' + product_code + ' from the catalog?')
         if answer != QMessageBox.StandardButton.Yes:
             return
 
-        new_product_list = []
-        for myProduct in file_manager.load_products():
-            if myProduct.getProductCode() != product_code:
-                new_product_list.append(myProduct)
-        file_manager.save_products(new_product_list)
+        # updated: one DELETE of the product row replaces the rewriting of the whole file
+        database_manager.delete_product(product_code)
 
         self.clearFields()
         self.showMessage('Item ' + product_code + ' deleted from the catalog.', False)

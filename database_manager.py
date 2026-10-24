@@ -353,6 +353,14 @@ def next_order_id():
     return rows[0][0] + 1
 
 
+# ---------- restock table ----------
+
+# the number of restocks of one product; a product with restocks cannot be deleted
+def count_product_restocks(product_code):
+    rows = select_rows('SELECT COUNT(*) FROM restock WHERE product_code = %s', (product_code,))
+    return rows[0][0]
+
+
 # ---------- charge table ----------
 
 def save_charge(myCharge):

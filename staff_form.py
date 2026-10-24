@@ -1,15 +1,15 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Starting on Oct 10, 2026
+Date: Starting on Oct 10, 2026, updating started on Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: staff number, last name, first name, address, phone, email, position, username,
 password, access level, the button pressed
 Processing: validation of the entered values, duplicate username check, hashing of the
 password by the Staff class, add, search, update and delete of a record through the
-file_manager module, rules that protect the account in use and the last admin account
-Outputs: the staff record added to, changed in or removed from staff.txt, the record
+database_manager module, rules that protect the account in use and the last admin account
+Outputs: the staff record added to, changed in or removed from the staff table, the record
 found displayed in the fields, a confirmation or an error message displayed on the form
 """
 import sys
@@ -17,7 +17,7 @@ import sys
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton,
                              QComboBox, QGridLayout, QHBoxLayout, QMessageBox)
 
-import file_manager
+import database_manager
 from eye_icon import make_eye_icon
 from person_template import (Staff, is_valid_phone, is_valid_email, ACCESS_ADMIN,
                              ACCESS_MANAGER, ACCESS_CLERK)
@@ -180,7 +180,7 @@ class StaffForm(QWidget):
     # counting the admin accounts, because the last one cannot be deleted or lowered
     def countAdmins(self):
         total_admins = 0
-        for myStaff in file_manager.load_staff():
+        for myStaff in database_manager.load_staff():
             if myStaff.isAdmin():
                 total_admins = total_admins + 1
         return total_admins
@@ -213,7 +213,7 @@ class StaffForm(QWidget):
             self.showMessage('The email address is not valid, for example name@flowershop.com.', True)
             return None
 
-        sameUsernameStaff = file_manager.find_staff_by_username(new_username)
+        sameUsernameStaff = database_manager.find_staff_by_username(new_username)
         if sameUsernameStaff is not None and sameUsernameStaff.getPersonId() != person_id:
             self.showMessage('The username ' + new_username + ' already belongs to employee '
                              + str(sameUsernameStaff.getPersonId()) + ', '
@@ -242,14 +242,14 @@ class StaffForm(QWidget):
                              'record, or Clear to add a new employee.', True)
             return
 
-        staff_list = file_manager.load_staff()
-        new_person_id = file_manager.next_staff_id(staff_list)
+        # updated: the next number comes from the highest one in the staff table
+        new_person_id = database_manager.next_staff_id()
 
         myStaff = self.readStaff(new_person_id, None)
         if myStaff is None:
             return
 
-        file_manager.save_staff(myStaff)
+        database_manager.save_staff(myStaff)
 
         self.clearFields()
         self.showMessage('Employee ' + str(myStaff.getPersonId()) + ', '
@@ -263,7 +263,7 @@ class StaffForm(QWidget):
             self.showMessage('Type the staff number, for example 2001.', True)
             return
 
-        myStaff = file_manager.find_staff(typed_id)
+        myStaff = database_manager.find_staff(typed_id)
         if myStaff is None:
             self.clearFields()
             self.showMessage('There is no employee with the number ' + str(typed_id) + '.', True)
@@ -304,7 +304,7 @@ class StaffForm(QWidget):
         if not self.isStaffLoaded():
             return
 
-        oldStaff = file_manager.find_staff(self.loaded_staff_id)
+        oldStaff = database_manager.find_staff(self.loaded_staff_id)
         myStaff = self.readStaff(self.loaded_staff_id, oldStaff.getPasswordHash())
         if myStaff is None:
             return
@@ -317,11 +317,8 @@ class StaffForm(QWidget):
                 self.showMessage('The last admin account must keep the Admin access level.', True)
                 return
 
-        staff_list = file_manager.load_staff()
-        for position in range(len(staff_list)):
-            if staff_list[position].getPersonId() == self.loaded_staff_id:
-                staff_list[position] = myStaff
-        file_manager.save_staff_list(staff_list)
+        # updated: one UPDATE of the staff row replaces the rewriting of the whole file
+        database_manager.update_staff(myStaff)
 
         password_changed = self.field_password.text() != ''
         self.field_password.setText('')
@@ -344,13 +341,13 @@ class StaffForm(QWidget):
             self.showMessage('The account in use cannot be deleted.', True)
             return
 
-        oldStaff = file_manager.find_staff(staff_id)
+        oldStaff = database_manager.find_staff(staff_id)
         if oldStaff.isAdmin() and self.countAdmins() == 1:
             self.showMessage('The last admin account cannot be deleted.', True)
             return
 
         total_orders = 0
-        for myOrder in file_manager.load_orders():
+        for myOrder in database_manager.load_orders():
             if myOrder.getStaffId() == staff_id:
                 total_orders = total_orders + 1
         if total_orders > 0:
@@ -363,11 +360,8 @@ class StaffForm(QWidget):
         if answer != QMessageBox.StandardButton.Yes:
             return
 
-        new_staff_list = []
-        for myStaff in file_manager.load_staff():
-            if myStaff.getPersonId() != staff_id:
-                new_staff_list.append(myStaff)
-        file_manager.save_staff_list(new_staff_list)
+        # updated: one DELETE of the staff row replaces the rewriting of the whole file
+        database_manager.delete_staff(staff_id)
 
         self.clearFields()
         self.showMessage('Employee ' + str(staff_id) + ' deleted.', False)

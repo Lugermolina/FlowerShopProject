@@ -1,12 +1,12 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Sep 20, 2026
+Date: Sep 20, 2026, updating started on Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: selected category, minimum price, maximum price, state of the
 "available items only" check box
-Processing: load_products() of the file_manager module, filtering of the catalog
+Processing: load_products() of the database_manager module, filtering of the catalog
 objects on category, price range and availability, calculateDisplayPrice()
 Outputs: the matching catalog items displayed in a table, the number of items found
 """
@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButt
                              QCheckBox, QComboBox, QGridLayout, QHBoxLayout,
                              QTableWidget, QTableWidgetItem, QAbstractItemView)
 
-import file_manager
+import database_manager
 
 ALL_CATEGORIES = 'All categories'
 COLUMN_TITLES = ['Code', 'Item', 'Category', 'Unit price', 'Extra', 'Price to pay',
@@ -86,11 +86,11 @@ class CatalogForm(QWidget):
 
         self.setLayout(grid)
 
-    # the categories offered in the list come from the catalog file itself
+    # updated: the categories offered in the list come from the product table
     def load_categories(self):
         self.combo_category.clear()
         self.combo_category.addItem(ALL_CATEGORIES)
-        for myProduct in file_manager.load_products():
+        for myProduct in database_manager.load_products():
             if self.combo_category.findText(myProduct.getCategory()) < 0:
                 self.combo_category.addItem(myProduct.getCategory())
 
@@ -129,7 +129,7 @@ class CatalogForm(QWidget):
         self.field_max_price.setText('')
         self.check_available.setChecked(False)
 
-        product_list = file_manager.load_products()
+        product_list = database_manager.load_products()
         self.fill_table(product_list)
         self.show_message('The catalog holds ' + str(len(product_list)) + ' items.', False)
 
@@ -157,7 +157,7 @@ class CatalogForm(QWidget):
             return
 
         found_list = []
-        for myProduct in file_manager.load_products():
+        for myProduct in database_manager.load_products():
             price_to_pay = myProduct.calculateDisplayPrice()
             keep_item = True
 
