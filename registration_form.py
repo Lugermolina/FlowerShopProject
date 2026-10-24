@@ -1,15 +1,16 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Starting on Sep 20, 2026, updating started on Oct 10, 2026 for iteration 2
+Date: Starting on Sep 20, 2026, updating started on Oct 10, 2026 for iteration 2, and on
+Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: customer number, last name, first name, home address, phone, email, delivery
 address, state of the "same as home address" check box, the button pressed
 Processing: validation of the entered values, duplicate email check, instantiation of
-a Customer object, add, search, update and delete of a record through the file_manager
+a Customer object, add, search, update and delete of a record through the database_manager
 module, delete rule based on the orders of the customer
-Outputs: the customer record added to, changed in or removed from customers.txt, the
+Outputs: the customer record added to, changed in or removed from the customer table, the
 record found displayed in the fields, a confirmation or an error message displayed
 on the form
 """
@@ -18,7 +19,7 @@ import sys
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton,
                              QCheckBox, QGridLayout, QHBoxLayout, QMessageBox)
 
-import file_manager
+import database_manager
 from person_template import Customer, is_valid_phone, is_valid_email, CUSTOMER_INACTIVE
 
 
@@ -177,7 +178,7 @@ class RegistrationForm(QWidget):
 
         # new: two customers cannot share an email; on an update the customer
         # themselves is not counted
-        sameEmailCustomer = file_manager.find_customer_by_email(new_email)
+        sameEmailCustomer = database_manager.find_customer_by_email(new_email)
         if sameEmailCustomer is not None and sameEmailCustomer.getPersonId() != person_id:
             self.showMessage('The email ' + new_email + ' already belongs to customer '
                              + str(sameEmailCustomer.getPersonId()) + ', '
@@ -195,14 +196,14 @@ class RegistrationForm(QWidget):
                              'record, or Clear to add a new customer.', True)
             return
 
-        customer_list = file_manager.load_customers()
-        new_person_id = file_manager.next_customer_id(customer_list)
+        # updated: the next number comes from the highest one in the customer table
+        new_person_id = database_manager.next_customer_id()
 
         myCustomer = self.readCustomer(new_person_id)
         if myCustomer is None:
             return
 
-        file_manager.save_customer(myCustomer)
+        database_manager.save_customer(myCustomer)
 
         self.clearFields()
         self.showMessage('Customer ' + str(myCustomer.getPersonId()) + ', '
@@ -217,7 +218,7 @@ class RegistrationForm(QWidget):
             self.showMessage('Type the customer number, for example 1001.', True)
             return
 
-        myCustomer = file_manager.find_customer(typed_id)
+        myCustomer = database_manager.find_customer(typed_id)
         if myCustomer is None:
             self.clearFields()
             self.showMessage('There is no customer with the number ' + str(typed_id) + '.', True)
@@ -259,13 +260,10 @@ class RegistrationForm(QWidget):
             return
 
         # an inactive customer who is updated becomes active again
-        was_inactive = False
-        customer_list = file_manager.load_customers()
-        for position in range(len(customer_list)):
-            if customer_list[position].getPersonId() == self.loaded_customer_id:
-                was_inactive = not customer_list[position].isActive()
-                customer_list[position] = myCustomer
-        file_manager.save_customers(customer_list)
+        oldCustomer = database_manager.find_customer(self.loaded_customer_id)
+        was_inactive = not oldCustomer.isActive()
+        # updated: one UPDATE of the customer row replaces the rewriting of the whole file
+        database_manager.update_customer(myCustomer)
 
         self.label_status.setText(myCustomer.getStatus())
         if was_inactive:
@@ -282,7 +280,7 @@ class RegistrationForm(QWidget):
             return
 
         customer_id = self.loaded_customer_id
-        order_list = file_manager.load_customer_orders(customer_id)
+        order_list = database_manager.load_customer_orders(customer_id)
 
         for myOrder in order_list:
             if myOrder.isActive():
@@ -299,15 +297,14 @@ class RegistrationForm(QWidget):
         if answer != QMessageBox.StandardButton.Yes:
             return
 
-        customer_list = file_manager.load_customers()
-        new_customer_list = []
-        for myCustomer in customer_list:
-            if myCustomer.getPersonId() != customer_id:
-                new_customer_list.append(myCustomer)
-            elif len(order_list) > 0:
-                myCustomer.setStatus(CUSTOMER_INACTIVE)
-                new_customer_list.append(myCustomer)
-        file_manager.save_customers(new_customer_list)
+        # updated: with past orders the row is kept and updated as inactive, because the
+        # orders refer to it; without orders the row is deleted
+        if len(order_list) > 0:
+            myCustomer = database_manager.find_customer(customer_id)
+            myCustomer.setStatus(CUSTOMER_INACTIVE)
+            database_manager.update_customer(myCustomer)
+        else:
+            database_manager.delete_customer(customer_id)
 
         self.clearFields()
         if len(order_list) > 0:

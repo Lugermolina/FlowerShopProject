@@ -1,11 +1,11 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Starting on Oct 10, 2026
+Date: Starting on Oct 10, 2026, updating started on Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: username, password
-Processing: find_staff_by_username() of the file_manager module, checkPassword() of the
+Processing: find_staff_by_username() of the database_manager module, checkPassword() of the
 Staff class, which compares the hash of the typed password with the stored hash
 Outputs: the Staff object of the employee who logged in, handed to the main window,
 or an error message displayed on the form
@@ -15,7 +15,7 @@ import sys
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton,
                              QGridLayout, QHBoxLayout)
 
-import file_manager
+import database_manager
 from eye_icon import make_eye_icon
 
 
@@ -112,7 +112,7 @@ class LoginForm(QWidget):
             self.showMessage('Enter the username and the password.', True)
             return
 
-        myStaff = file_manager.find_staff_by_username(typed_username)
+        myStaff = database_manager.find_staff_by_username(typed_username)
 
         # one single message for both cases, so the form does not reveal which
         # usernames exist
@@ -133,8 +133,8 @@ def main():
     # instantiate an object app from QApplication
     app = QApplication(sys.argv)
 
-    # the first admin account is created when staff.txt holds no record
-    file_manager.create_default_data()
+    # the first admin account is created when the staff table holds no record
+    database_manager.create_default_data()
 
     # create the window of the login form
     window = LoginForm()

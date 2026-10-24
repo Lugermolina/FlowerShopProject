@@ -1,12 +1,14 @@
 # create an interactive Python program
 # Author: Luis Gerardo Molina
 """
-Date: Sep 20, 2026, updating started on Oct 10, 2026 for iteration 2
+Date: Sep 20, 2026, updating started on Oct 10, 2026 for iteration 2, and on Oct 24, 2026
+for iteration 3
 Algorithm:
 Class: Python Teams online class
 Inputs: the username and the password typed in the login form, the menu item selected
 by the user
-Processing: create_default_data() of the file_manager module, building of the menus
+Processing: create_default_data() of the database_manager module, style sheet of the
+application, building of the menus
 according to the access level of the employee who logged in, instantiation of the
 form that matches the selected menu item
 Outputs: the main window of the Flower Shop Management System, showing the login form
@@ -17,7 +19,7 @@ import sys
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
 
-import file_manager
+import database_manager
 from login_form import LoginForm
 from registration_form import RegistrationForm
 from catalog_form import CatalogForm
@@ -29,6 +31,40 @@ from billing_form import BillingForm
 from report_form import ReportForm
 
 WINDOW_TITLE = 'Flower Shop Management System'
+
+# new: one style sheet for the whole application, in the colors of the flower shop: a muted
+# rose for the main buttons, the menus and the table headers, neutral grays and white for
+# the work areas, Clear with a gray outline, Delete outlined in dark red
+ACCENT = '#A23E5C'
+APP_STYLE = """
+QWidget { background-color: #F7F5F6; color: #2B2B2B; font-family: "Segoe UI"; font-size: 10pt; }
+QLineEdit, QTextEdit { background-color: #FFFFFF; border: 1px solid #C9C3C6;
+    border-radius: 4px; padding: 4px; }
+QLineEdit:focus, QTextEdit:focus { border: 1px solid ACCENT; }
+QPushButton { background-color: ACCENT; color: #FFFFFF; border: none; border-radius: 4px;
+    padding: 6px 14px; }
+QPushButton:hover { background-color: #8E3553; }
+QPushButton:pressed { background-color: #7A2D47; }
+QPushButton:disabled { background-color: #D9C7CD; }
+QPushButton[text="Clear"], QPushButton[text="Show all"], QPushButton[checkable="true"] {
+    background-color: #FFFFFF; color: #2B2B2B; border: 1px solid #B9B2B5; }
+QPushButton[text="Clear"]:hover, QPushButton[text="Show all"]:hover,
+QPushButton[checkable="true"]:hover { background-color: #EFEBED; }
+QPushButton[text="Delete"], QPushButton[text="Remove selected line"] {
+    background-color: #FFFFFF; color: #9B1C1C; border: 1px solid #9B1C1C; }
+QPushButton[text="Delete"]:hover, QPushButton[text="Remove selected line"]:hover {
+    background-color: #FBEAEA; }
+QMenuBar { background-color: #FFFFFF; border-bottom: 1px solid #E2DCDF; }
+QMenuBar::item { padding: 6px 12px; background: transparent; }
+QMenuBar::item:selected { background-color: #F3E6EA; color: ACCENT; }
+QMenu { background-color: #FFFFFF; border: 1px solid #E2DCDF; }
+QMenu::item { padding: 6px 24px; }
+QMenu::item:selected { background-color: ACCENT; color: #FFFFFF; }
+QTableWidget { background-color: #FFFFFF; gridline-color: #E2DCDF;
+    selection-background-color: #F3E6EA; selection-color: #2B2B2B; }
+QHeaderView::section { background-color: ACCENT; color: #FFFFFF; padding: 5px;
+    border: none; font-weight: bold; }
+""".replace('ACCENT', ACCENT)
 
 
 class MainWindow(QMainWindow):
@@ -95,7 +131,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(label_text)
 
     # updated: a new form object is created every time its menu item is selected, so
-    # it always reads the files again; this replaces the tabs of iteration 1
+    # it always reads the tables again; this replaces the tabs of iteration 1
     def open_customers(self):
         self.setCentralWidget(RegistrationForm())
 
@@ -127,9 +163,10 @@ class MainWindow(QMainWindow):
 def main():
     # instantiate an object app from QApplication
     app = QApplication(sys.argv)
+    app.setStyleSheet(APP_STYLE)
 
-    # new: the first admin account and the charges are created when their files are empty
-    file_manager.create_default_data()
+    # updated: the first admin account and the charges are created when their tables are empty
+    database_manager.create_default_data()
 
     # create the main window of the application
     window = MainWindow()
