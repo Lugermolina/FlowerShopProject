@@ -12,6 +12,7 @@ Outputs: the matching catalog items displayed in a table, the number of items fo
 """
 import sys
 
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton,
                              QCheckBox, QComboBox, QGridLayout, QHBoxLayout,
                              QTableWidget, QTableWidgetItem, QAbstractItemView)
@@ -119,7 +120,11 @@ class CatalogForm(QWidget):
             self.table_results.setItem(row, 4, QTableWidgetItem(f'{myProduct.getExtraCharge():.2f} $'))
             self.table_results.setItem(row, 5, QTableWidgetItem(f'{myProduct.calculateDisplayPrice():.2f} $'))
             self.table_results.setItem(row, 6, QTableWidgetItem(str(myProduct.getStockQty())))
-            self.table_results.setItem(row, 7, QTableWidgetItem(availability))
+            item_availability = QTableWidgetItem(availability)
+            # new: an item out of stock is shown in red
+            if not myProduct.isAvailable():
+                item_availability.setForeground(QColor('#B22222'))
+            self.table_results.setItem(row, 7, item_availability)
             row = row + 1
 
         self.table_results.resizeColumnsToContents()

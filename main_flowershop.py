@@ -29,6 +29,9 @@ from charge_form import ChargeForm
 from order_form import OrderForm
 from billing_form import BillingForm
 from report_form import ReportForm
+from supplier_form import SupplierForm
+from restock_form import RestockForm
+from order_followup_form import OrderFollowUpForm
 
 WINDOW_TITLE = 'Flower Shop Management System'
 
@@ -62,6 +65,8 @@ QMenu { background-color: #FFFFFF; border: 1px solid #E2DCDF; }
 QMenu::item { padding: 6px 24px; }
 QMenu::item:selected { background-color: ACCENT; color: #FFFFFF; }
 QLabel#title { color: ACCENT; font-size: 14pt; font-weight: bold; }
+QLabel#session { background-color: ACCENT; color: #FFFFFF; font-weight: bold;
+    border-radius: 10px; padding: 3px 12px; margin: 3px 8px; }
 QTableWidget { background-color: #FFFFFF; alternate-background-color: #FBF3F6;
     gridline-color: #E2DCDF;
     selection-background-color: #F3E6EA; selection-color: #2B2B2B; }
@@ -75,6 +80,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         # new data attribute: the employee who logged in, None while nobody is logged in
         self.myStaff = None
+        # new: the name and the access level of the employee in session, at the right of
+        # the menu bar, hidden while nobody is logged in
+        self.label_session = QLabel('')
+        self.label_session.setObjectName('session')
+        self.menuBar().setCornerWidget(self.label_session)
         self.show_login()
 
     # new method: the window starts, and comes back after a log out, with the login
@@ -82,6 +92,7 @@ class MainWindow(QMainWindow):
     def show_login(self):
         self.myStaff = None
         self.menuBar().clear()
+        self.label_session.hide()
         self.setWindowTitle(WINDOW_TITLE)
         self.setCentralWidget(LoginForm(self))
 
@@ -91,6 +102,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(WINDOW_TITLE + ', ' + myStaff.getFullName() + ' ('
                             + myStaff.getAccessLevel() + ')')
         self.build_menus()
+        self.label_session.setText(myStaff.getFullName() + ' (' + myStaff.getAccessLevel() + ')')
+        self.label_session.show()
         self.show_text('Welcome, ' + myStaff.getFullName()
                        + '. Choose an option in the menu.')
 
@@ -113,6 +126,13 @@ class MainWindow(QMainWindow):
 
         menu_orders = self.menuBar().addMenu('Orders')
         self.add_menu_item(menu_orders, 'Orders', self.open_orders)
+        self.add_menu_item(menu_orders, 'Order follow-up', self.open_order_followup)
+
+        # new: the suppliers and the restocks for a manager and for an admin
+        if self.myStaff.canManage():
+            menu_suppliers = self.menuBar().addMenu('Suppliers')
+            self.add_menu_item(menu_suppliers, 'Suppliers', self.open_suppliers)
+            self.add_menu_item(menu_suppliers, 'Restock', self.open_restock)
 
         menu_billing = self.menuBar().addMenu('Billing')
         self.add_menu_item(menu_billing, 'Bill an order', self.open_billing)
@@ -152,6 +172,15 @@ class MainWindow(QMainWindow):
 
     def open_orders(self):
         self.setCentralWidget(OrderForm(self.myStaff))
+
+    def open_suppliers(self):
+        self.setCentralWidget(SupplierForm())
+
+    def open_restock(self):
+        self.setCentralWidget(RestockForm())
+
+    def open_order_followup(self):
+        self.setCentralWidget(OrderFollowUpForm())
 
     def open_billing(self):
         self.setCentralWidget(BillingForm())

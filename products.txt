@@ -1,6 +1,0 @@
-B001	Red rose bouquet	Bouquets	45.0	11	Bouquet	12
-B002	Spring mixed bouquet	Bouquets	38.5	5	Bouquet	15
-P001	Orchid in ceramic pot	Potted plants	52.0	4	PottedPlant	15 cm
-P002	Small succulent	Potted plants	14.75	0	PottedPlant	8 cm
-O001	Sympathy arrangement	Occasions	75.0	2	Product	0
-B003	Tulip bouquet	Bouquets	31.0	20	Bouquet	10

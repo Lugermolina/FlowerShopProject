@@ -4,12 +4,12 @@
 Date: Oct 24, 2026 for iteration 3
 Algorithm:
 Class: Python Teams online class
-Inputs: Customer, Staff, Product, Order, OrderItem, Charge and BillDetail objects,
-the tables of the MySQL database flowershopdb
+Inputs: Customer, Staff, Supplier, Product, Order, OrderItem, Charge, BillDetail and
+Restock objects, the tables of the MySQL database flowershopdb
 Processing: CRUD operations with pymysql: INSERT a new record, SELECT the records and
 instantiate the objects again, UPDATE one record, DELETE one record
-Outputs: rows in the tables customer, staff, product, customer_order, order_item,
-charge and bill_detail, lists of objects of the seven classes
+Outputs: rows in the tables customer, staff, supplier, product, customer_order,
+order_item, charge, bill_detail and restock, lists of objects of the nine classes
 """
 import os
 
@@ -18,6 +18,7 @@ import pymysql
 from person_template import Customer, Staff, ACCESS_ADMIN
 from product_template import Product, Bouquet, PottedPlant
 from order_template import Order, OrderItem
+from supplier_template import Supplier, Restock
 from billing_template import (Charge, BillDetail, CHARGE_PERCENT, CHARGE_FIXED,
                               CHARGE_SUBTOTAL, CHARGE_TOTAL, CHARGE_GST, CHARGE_QST,
                               CHARGE_DELIVERY)
@@ -249,6 +250,54 @@ def next_staff_id():
     return rows[0][0] + 1
 
 
+# ---------- supplier table ----------
+
+def supplier_from_row(row):
+    return Supplier(row[0], row[1], row[2], row[3], row[4], row[5])
+
+
+def save_supplier(mySupplier):
+    execute_command('INSERT INTO supplier (supplier_id, supplier_name, contact_name, phone, '
+                    'email, address) VALUES (%s, %s, %s, %s, %s, %s)',
+                    (mySupplier.getSupplierId(), mySupplier.getSupplierName(),
+                     mySupplier.getContactName(), mySupplier.getPhone(), mySupplier.getEmail(),
+                     mySupplier.getAddress()))
+    return True
+
+
+def update_supplier(mySupplier):
+    return execute_command('UPDATE supplier SET supplier_name = %s, contact_name = %s, '
+                           'phone = %s, email = %s, address = %s WHERE supplier_id = %s',
+                           (mySupplier.getSupplierName(), mySupplier.getContactName(),
+                            mySupplier.getPhone(), mySupplier.getEmail(),
+                            mySupplier.getAddress(), mySupplier.getSupplierId()))
+
+
+def delete_supplier(supplier_id):
+    return execute_command('DELETE FROM supplier WHERE supplier_id = %s', (supplier_id,))
+
+
+def load_suppliers():
+    supplier_list = []
+    for row in select_rows('SELECT * FROM supplier ORDER BY supplier_id'):
+        supplier_list.append(supplier_from_row(row))
+    return supplier_list
+
+
+def find_supplier(supplier_id):
+    rows = select_rows('SELECT * FROM supplier WHERE supplier_id = %s', (supplier_id,))
+    if len(rows) == 0:
+        return None
+    return supplier_from_row(rows[0])
+
+
+def next_supplier_id():
+    rows = select_rows('SELECT MAX(supplier_id) FROM supplier')
+    if rows[0][0] is None:
+        return 3001
+    return rows[0][0] + 1
+
+
 # ---------- customer_order and order_item tables ----------
 
 def order_values(myOrder):
@@ -341,6 +390,18 @@ def find_order(order_id):
     return order_list[0]
 
 
+# the orders not completed yet, by pickup or delivery date, for the follow-up of the day
+def load_open_orders():
+    return orders_from_rows(select_rows(ORDER_COLUMNS + 'WHERE order_status <> %s '
+                                        'ORDER BY delivery_date, order_id', ('Completed',)))
+
+
+# only the status changes, the lines of the order stay as they are
+def update_order_status(order_id, order_status):
+    return execute_command('UPDATE customer_order SET order_status = %s WHERE order_id = %s',
+                           (order_status, order_id))
+
+
 def load_customer_orders(customer_id):
     return orders_from_rows(select_rows(ORDER_COLUMNS + 'WHERE customer_id = %s '
                                         'ORDER BY order_id', (customer_id,)))
@@ -355,9 +416,50 @@ def next_order_id():
 
 # ---------- restock table ----------
 
+def restock_from_row(row):
+    return Restock(row[0], row[1], row[2], date_text(row[3]), int(row[4]), float(row[5]))
+
+
+# the restock is inserted and the stock of the product goes up with one commit: if a
+# command fails before it, the database keeps neither of them
+def save_restock(myRestock):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute('INSERT INTO restock (restock_id, product_code, supplier_id, restock_date, '
+                   'quantity, unit_cost) VALUES (%s, %s, %s, %s, %s, %s)',
+                   (myRestock.getRestockId(), myRestock.getProductCode(),
+                    myRestock.getSupplierId(), myRestock.getRestockDate(),
+                    myRestock.getQuantity(), myRestock.getUnitCost()))
+    cursor.execute('UPDATE product SET stock_qty = stock_qty + %s WHERE product_code = %s',
+                   (myRestock.getQuantity(), myRestock.getProductCode()))
+    connection.commit()
+    connection.close()
+    return True
+
+
+def load_restocks():
+    restock_list = []
+    for row in select_rows('SELECT * FROM restock ORDER BY restock_date, restock_id'):
+        restock_list.append(restock_from_row(row))
+    return restock_list
+
+
+def next_restock_id():
+    rows = select_rows('SELECT MAX(restock_id) FROM restock')
+    if rows[0][0] is None:
+        return 7001
+    return rows[0][0] + 1
+
+
 # the number of restocks of one product; a product with restocks cannot be deleted
 def count_product_restocks(product_code):
     rows = select_rows('SELECT COUNT(*) FROM restock WHERE product_code = %s', (product_code,))
+    return rows[0][0]
+
+
+# the number of restocks of one supplier; a supplier with restocks cannot be deleted
+def count_supplier_restocks(supplier_id):
+    rows = select_rows('SELECT COUNT(*) FROM restock WHERE supplier_id = %s', (supplier_id,))
     return rows[0][0]
 
 
