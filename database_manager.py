@@ -7,7 +7,8 @@ Class: Python Teams online class
 Inputs: Customer, Staff, Supplier, Product, Order, OrderItem, Charge, BillDetail and
 Restock objects, the tables of the MySQL database flowershopdb
 Processing: CRUD operations with pymysql: INSERT a new record, SELECT the records and
-instantiate the objects again, UPDATE one record, DELETE one record
+instantiate the objects again, UPDATE one record, DELETE one record, totals with
+GROUP BY for the analytics charts
 Outputs: rows in the tables customer, staff, supplier, product, customer_order,
 order_item, charge, bill_detail and restock, lists of objects of the nine classes
 """
@@ -17,7 +18,7 @@ import pymysql
 
 from person_template import Customer, Staff, ACCESS_ADMIN
 from product_template import Product, Bouquet, PottedPlant
-from order_template import Order, OrderItem
+from order_template import Order, OrderItem, PAYMENT_PAID
 from supplier_template import Supplier, Restock
 from billing_template import (Charge, BillDetail, CHARGE_PERCENT, CHARGE_FIXED,
                               CHARGE_SUBTOTAL, CHARGE_TOTAL, CHARGE_GST, CHARGE_QST,
@@ -535,6 +536,44 @@ def load_order_bill(order_id):
         else:
             bill_list.append(myBillDetail)
     return bill_list + total_list
+
+
+# ---------- analytics: totals calculated by MySQL with GROUP BY ----------
+
+# new: one row per month: year, month, number of paid orders, sum of their subtotals
+def load_sales_by_month():
+    return select_rows('SELECT bill_year, bill_month, COUNT(*), SUM(amount) FROM bill_detail '
+                       'WHERE charge_no = %s GROUP BY bill_year, bill_month '
+                       'ORDER BY bill_year, bill_month', (CHARGE_SUBTOTAL,))
+
+
+# new: one row per category: category, sales of the paid orders (price and extra charge);
+# an item no longer in the catalog is counted under Other
+def load_sales_by_category():
+    return select_rows('SELECT IFNULL(product.category, %s) AS category_name, '
+                       'SUM(order_item.quantity * (order_item.unit_price + order_item.extra_charge)) '
+                       'FROM order_item '
+                       'JOIN customer_order ON order_item.order_id = customer_order.order_id '
+                       'LEFT JOIN product ON order_item.product_code = product.product_code '
+                       'WHERE customer_order.payment_status = %s '
+                       'GROUP BY category_name '
+                       'ORDER BY SUM(order_item.quantity * (order_item.unit_price + '
+                       'order_item.extra_charge)) DESC', ('Other', PAYMENT_PAID))
+
+
+# new: one row per item, the highest stock first
+def load_stock_levels():
+    return select_rows('SELECT product_code, product_name, stock_qty FROM product '
+                       'ORDER BY stock_qty DESC, product_code DESC')
+
+
+# new: one row per supplier: name, number of restocks, total cost, the lowest cost first
+def load_restock_cost_by_supplier():
+    return select_rows('SELECT supplier.supplier_name, COUNT(*), '
+                       'SUM(restock.quantity * restock.unit_cost) FROM restock '
+                       'JOIN supplier ON restock.supplier_id = supplier.supplier_id '
+                       'GROUP BY supplier.supplier_id, supplier.supplier_name '
+                       'ORDER BY SUM(restock.quantity * restock.unit_cost)')
 
 
 # called when the application starts: it creates the first admin account and the

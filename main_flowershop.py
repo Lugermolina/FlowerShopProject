@@ -32,6 +32,7 @@ from report_form import ReportForm
 from supplier_form import SupplierForm
 from restock_form import RestockForm
 from order_followup_form import OrderFollowUpForm
+from analytics_form import AnalyticsForm
 
 WINDOW_TITLE = 'Flower Shop Management System'
 
@@ -143,6 +144,8 @@ class MainWindow(QMainWindow):
         if self.myStaff.canManage():
             self.add_menu_item(menu_reports, 'Management reports',
                                self.open_management_reports)
+            # new: the charts of the sales, the stock and the restock costs
+            self.add_menu_item(menu_reports, 'Analytics', self.open_analytics)
 
         menu_session = self.menuBar().addMenu('Session')
         self.add_menu_item(menu_session, 'Log out', self.show_login)
@@ -190,6 +193,9 @@ class MainWindow(QMainWindow):
 
     def open_management_reports(self):
         self.setCentralWidget(ReportForm(self.myStaff, True))
+
+    def open_analytics(self):
+        self.setCentralWidget(AnalyticsForm())
 
 
 def main():
